@@ -12,20 +12,31 @@ clc
 
 %% parameters
 debug      = 1;
+mode       = "train";
 uniform    = 0;
 sar_min    = -5000.0;
 sar_max    = 5000.0;
 n_bits     = 12;       % Define the number of bits used for quantization
 n_levels   = 2^n_bits; % Define the number of quantization levels
 mu         = 2.5;      % mu-law parameter
-output_dir = '/home/paras/PythonDir/SAR-HEVC-Deblocking-master/frames_nonuniform/';
+output_dir = ['/home/paras/PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_' char(mode) '/'];
+if ~exist(output_dir, 'dir')
+    mkdir(output_dir)
+end
 %% Read SAR image
-filename = "/home/paras/PythonDir/dataset/SAR_dataset/raw/AFRL_NGA_Products/sicd_example_1_PFA_RE32F_IM32F_HH.nitf";
+if mode=="train"
+    filename = "/home/paras/PythonDir/dataset/SAR_dataset/raw/AFRL_NGA_Products/sicd_example_1_PFA_RE32F_IM32F_HH.nitf";
+else
+    filename = "/home/paras/PythonDir/dataset/SAR_dataset/raw/AFRL_NGA_Products/sicd_example_2_PFA_RE32F_IM32F_HH.nitf";
+end
 
 [pathstr,name,ext] = fileparts(filename);
 fprintf("File name: %s\nSAR clip range: [%d, %d])\nQuantization bits: %d\n", name, sar_min, sar_max, n_bits);
 
 sar_image = nitfread(filename);
+if mode == "test"
+    sar_image = sar_image(2401:3424, 1201:2224, :);
+end
 [H,W,C]   = size(sar_image);
 % Clipped SAR with in some fixed range
 sar_image(sar_image < sar_min) = sar_min;
