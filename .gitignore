@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Dataset and ckpt
+/ckpt
+/AFRL_nonuniform_train
+/AFRL_nonuniform_validation
+/AFRL_nonuniform_test
+/frames

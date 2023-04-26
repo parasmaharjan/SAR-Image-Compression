@@ -17,93 +17,89 @@ min_val          = -500
 max_val          = 500
 amp_max_val      = np.sqrt(min_val**2+max_val**2)
 ps               = 256
-crf              = 25
-qp               = 13
-output_file_path = "/home/paras/PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
-
+qp               = 21
+home_dir         = os.getenv("HOME")
+output_file_path = "PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
+temp_dir         = "./frames_nonuniform"
 # make dir
-if os.path.exists("./frames_nonuniform") == False:
-    os.makedirs("./frames_nonuniform")
+if os.path.exists(temp_dir) == False:
+    os.makedirs(temp_dir)
     
 if mode == 'train':
-    file_path  = "/home/paras/PythonDir/SAR-HEVC-AFRl-dataset/AFRL_nonuniform_train/"
+    file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_train/"
     samples    = 10000
     
 elif mode == 'validation':
-    file_path  = "/home/paras/PythonDir/SAR-HEVC-AFRl-dataset/AFRL_nonuniform_validation/"
+    file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_validation/"
     samples    = 1000
 
 elif mode == 'test':
-    file_path  = "/home/paras/PythonDir/SAR-HEVC-AFRl-dataset/AFRL_nonuniform_test/"
+    file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_test/"
     samples    = 1
     ps         = 1024
 
-real_list      = sorted(glob.glob(os.path.join(file_path, "*real.png")))
-imaginary_list = sorted(glob.glob(os.path.join(file_path, "*imaginary.png")))
-amp_list       = sorted(glob.glob(os.path.join(file_path, "*amp.mat")))
-pha_list       = sorted(glob.glob(os.path.join(file_path, "*phase.mat")))
-sar_list       = sorted(glob.glob(os.path.join(file_path, "*gt_sar.mat")))
-if os.path.exists(output_file_path) == False:
-    os.makedirs(os.path.join(output_file_path))
-with open(os.path.join(output_file_path, "log_qp%d_%s.txt"%(qp, mode)), "w") as file:
+real_list      = sorted(glob.glob(os.path.join(home_dir, file_path, "*real.png")))
+imaginary_list = sorted(glob.glob(os.path.join(home_dir, file_path, "*imaginary.png")))
+amp_list       = sorted(glob.glob(os.path.join(home_dir, file_path, "*amp.mat")))
+pha_list       = sorted(glob.glob(os.path.join(home_dir, file_path, "*phase.mat")))
+gt_sar_list    = sorted(glob.glob(os.path.join(home_dir, file_path, "*gt_sar.mat")))
+if os.path.exists(os.path.join(home_dir, output_file_path)) == False:
+    os.makedirs(os.path.join(home_dir, output_file_path))
+with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode)), "w") as file:
     file.write("AFRL non-uniform quantization mu = 2.5\n")
     for i in range(len(real_list)):
         print("\n\n------------ENCODING real-----------------------") 
         cmd_encode = ['ffmpeg -y',
                     '-i %s'%real_list[i],
-                    ' -c:v libx265',# -x265-params frame-threads=4:keyint=1:ref=1:no-open-gop=1:weightp=0:weightb=0:cutree=0:rc-lookahead=0:bframes=0:scenecut=0:b-adapt=0:repeat-headers=1',
-                    #f'-crf {crf}',
+                    ' -c:v libx265',
                     '-qp %d'%(qp),
                     '-pix_fmt gray12le',
-                    './frames/output_real_%d.mp4'%(i+1)]
+                    '%s/output_real_%d.mp4'%(temp_dir, i+1)]
 
         cmd_encode = ' '.join(cmd_encode)
-        start_time = time.time()
         os.system(cmd_encode)
 
         print("\n\n------------ENCODING imaginary-----------------------")
         cmd_encode = ['ffmpeg -y',
                     '-i %s'%imaginary_list[i],
-                    ' -c:v libx265', # -x265-params frame-threads=4:keyint=1:ref=1:no-open-gop=1:weightp=0:weightb=0:cutree=0:rc-lookahead=0:bframes=0:scenecut=0:b-adapt=0:repeat-headers=1',
-                    #f'-crf {crf}',
+                    ' -c:v libx265', 
                     '-qp %d'%(qp),
                     '-pix_fmt gray12le',
-                    './frames/output_imaginary_%d.mp4'%(i+1)]
+                    '%s/output_imaginary_%d.mp4'%(temp_dir, i+1)]
 
         cmd_encode = ' '.join(cmd_encode)
-        start_time = time.time()
         os.system(cmd_encode)
 
         # DECODE
         print("\n\n------------DECODING real-----------------------")
         cmd_decode = ['ffmpeg -y',
-                    '-i ./frames/output_real_%d.mp4'%(i+1),
+                    '-i %s/output_real_%d.mp4'%(temp_dir, i+1),
                     f'-pix_fmt gray16be',
-                    './frames/recon_real_%d.png'%(i+1)]
+                    '%s/recon_real_%d.png'%(temp_dir, i+1)]
         cmd_decode = ' '.join(cmd_decode)
         os.system(cmd_decode)
 
-        f_size_real = Path('./frames/output_real_%d.mp4'%(i+1)).stat().st_size
+        f_size_real = Path('%s/output_real_%d.mp4'%(temp_dir, i+1)).stat().st_size
 
         # DECODE
         print("\n\n------------DECODING imaginary-----------------------")
         cmd_decode = ['ffmpeg -y',
-                    '-i ./frames/output_imaginary_%d.mp4'%(i+1),
+                    '-i %s/output_imaginary_%d.mp4'%(temp_dir, i+1),
                     f'-pix_fmt gray16be',
-                    './frames/recon_imaginary_%d.png'%(i+1)]
+                    '%s/recon_imaginary_%d.png'%(temp_dir, i+1)]
         cmd_decode = ' '.join(cmd_decode)
         os.system(cmd_decode)
 
-        f_size_imaginary = Path('./frames/output_imaginary_%d.mp4'%(i+1)).stat().st_size
+        f_size_imaginary = Path('%s/output_imaginary_%d.mp4'%(temp_dir, i+1)).stat().st_size
 
         # load images
-        rec_ch1 = cv2.imread('./frames/recon_real_%d.png'%(i+1), cv2.IMREAD_ANYDEPTH)
-        rec_ch2 = cv2.imread('./frames/recon_imaginary_%d.png'%(i+1), cv2.IMREAD_ANYDEPTH)
-        img_clipped = sio.loadmat(sar_list[i])['sar']
+        rec_ch1 = cv2.imread('%s/recon_real_%d.png'%(temp_dir, i+1), cv2.IMREAD_ANYDEPTH)
+        rec_ch2 = cv2.imread('%s/recon_imaginary_%d.png'%(temp_dir, i+1), cv2.IMREAD_ANYDEPTH)
+        img_clipped = sio.loadmat(gt_sar_list[i])['sat_image']
         real_quant = cv2.imread(real_list[i] , cv2.IMREAD_ANYDEPTH)
         imaginary_quant = cv2.imread(imaginary_list[i] , cv2.IMREAD_ANYDEPTH)
-        amp = sio.loadmat(amp_list[i])['amp']
-        pha = sio.loadmat(pha_list[i])['phase']
+        amp = sio.loadmat(amp_list[i])['sar_amp']
+        pha = sio.loadmat(pha_list[i])['sar_phase']
 
         H, W, C = img_clipped.shape
 
@@ -132,7 +128,7 @@ with open(os.path.join(output_file_path, "log_qp%d_%s.txt"%(qp, mode)), "w") as 
         print("Pha mse: ", recon_pha_mse)
 
         # make dir
-        file.write(sar_list[i])
+        file.write(gt_sar_list[i])
         file.write(f'bitstream-size:{f_size_real + f_size_imaginary} bytes ({bpp:.4f}) bpp\n')
         file.write("AMP psnr: %f\n"%recon_psnr)
         file.write("SAR psnr: %f %f\n"%(recon_real_psnr, recon_imaginary_psnr))
