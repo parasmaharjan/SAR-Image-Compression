@@ -17,7 +17,7 @@ min_val          = -500
 max_val          = 500
 amp_max_val      = np.sqrt(min_val**2+max_val**2)
 ps               = 256
-qp               = 21
+qp               = 18
 home_dir         = os.getenv("HOME")
 output_file_path = "PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
 temp_dir         = "./frames_nonuniform"
@@ -95,7 +95,7 @@ with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode))
         # load images
         rec_ch1 = cv2.imread('%s/recon_real_%d.png'%(temp_dir, i+1), cv2.IMREAD_ANYDEPTH)
         rec_ch2 = cv2.imread('%s/recon_imaginary_%d.png'%(temp_dir, i+1), cv2.IMREAD_ANYDEPTH)
-        img_clipped = sio.loadmat(gt_sar_list[i])['sat_image']
+        img_clipped = sio.loadmat(gt_sar_list[i])['sar_image']
         real_quant = cv2.imread(real_list[i] , cv2.IMREAD_ANYDEPTH)
         imaginary_quant = cv2.imread(imaginary_list[i] , cv2.IMREAD_ANYDEPTH)
         amp = sio.loadmat(amp_list[i])['sar_amp']
@@ -109,48 +109,49 @@ with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode))
 
         #img_recon = np.stack((rec_ch1, rec_ch2), axis=2)
         img_recon = np.stack((np.minimum(rec_ch1, (2**nbit -1)), np.minimum(rec_ch2, (2**nbit -1))), axis=2)
-        img_recon_dequant = np.round( ((max_val - min_val)*img_recon.astype(np.float32)/(2**nbit - 1)) + min_val )
+        #img_recon_dequant = np.round( ((max_val - min_val)*img_recon.astype(np.float32)/(2**nbit - 1)) + min_val )
 
         recon_real_psnr = peak_signal_noise_ratio(img_recon[:,:,0]/(2**nbit -1), real_quant/(2**nbit -1))
         recon_imaginary_psnr = peak_signal_noise_ratio(img_recon[:,:,1]/(2**nbit -1), imaginary_quant/(2**nbit -1))
-
-        # Recon amp
-        recon_amp = np.sqrt(img_recon_dequant[:,:,0]**2 + img_recon_dequant[:,:,1]**2)
-        recon_psnr = peak_signal_noise_ratio(recon_amp/amp_max_val, amp/amp_max_val)
-        print("AMP psnr: ", recon_psnr)
         print("SAR psnr", recon_real_psnr, recon_imaginary_psnr)
 
-        if mode == 'test':
-            pass
-        plt.subplot(1,2,1);plt.imshow(amp, cmap="gray");plt.title("Original amplitude image (Complex SAR bpp: %.4f)"%(bpp));plt.axis('off');plt.subplot(1,2,2);plt.imshow(recon_amp, cmap='gray');plt.title("HEVC decoded amplitude SAR (QP: %d, PSNR: %.4f dB)"%(qp, recon_psnr));plt.axis('off');plt.show()
-        recon_pha = np.arctan2(img_recon_dequant[:,:,1], img_recon_dequant[:,:,0])
-        recon_pha_mse = mean_squared_error(recon_pha, pha)
-        print("Pha mse: ", recon_pha_mse)
+        # Recon amp
+        # recon_amp = np.sqrt(img_recon_dequant[:,:,0]**2 + img_recon_dequant[:,:,1]**2)
+        # recon_psnr = peak_signal_noise_ratio(recon_amp/amp_max_val, amp/amp_max_val)
+        # print("AMP psnr: ", recon_psnr)
+        
+
+        # plt.subplot(1,2,1);plt.imshow(amp, cmap="gray");plt.title("Original amplitude image (Complex SAR bpp: %.4f)"%(bpp));plt.axis('off');plt.subplot(1,2,2);plt.imshow(recon_amp, cmap='gray');plt.title("HEVC decoded amplitude SAR (QP: %d, PSNR: %.4f dB)"%(qp, recon_psnr));plt.axis('off');plt.show()
+        # recon_pha = np.arctan2(img_recon_dequant[:,:,1], img_recon_dequant[:,:,0])
+        # recon_pha_mse = mean_squared_error(recon_pha, pha)
+        # print("Pha mse: ", recon_pha_mse)
 
         # make dir
         file.write(gt_sar_list[i])
         file.write(f'bitstream-size:{f_size_real + f_size_imaginary} bytes ({bpp:.4f}) bpp\n')
-        file.write("AMP psnr: %f\n"%recon_psnr)
         file.write("SAR psnr: %f %f\n"%(recon_real_psnr, recon_imaginary_psnr))
-        file.write("Pha mse: %f\n\n"%(recon_pha_mse))
+        #file.write("AMP psnr: %f\n"%recon_psnr)
+        #file.write("Pha mse: %f\n\n"%(recon_pha_mse))
 
         # if mode == "test":
         #     os.popen('cp ./frames/* %s'%output_file_path)
         #     exit()
                 # make dir
-        if not os.path.exists(os.path.join(output_file_path, "input")):
-            os.makedirs(os.path.join(output_file_path, "input"))
-            os.makedirs(os.path.join(output_file_path, "gt"))
-            os.makedirs(os.path.join(output_file_path, "amp"))
-            os.makedirs(os.path.join(output_file_path, "phase"))
+        if not os.path.exists(os.path.join(home_dir, output_file_path, "input")):
+            os.makedirs(os.path.join(home_dir, output_file_path, "input"))
+            os.makedirs(os.path.join(home_dir, output_file_path, "gt"))
+            os.makedirs(os.path.join(home_dir, output_file_path, "amp"))
+            os.makedirs(os.path.join(home_dir, output_file_path, "phase"))
         # create intput and GT pair
         for j in range(samples):
             #print(i, j)
-            xx = np.random.randint(0, W - ps)
-            yy = np.random.randint(0, H - ps)
             if mode == "test":
                 xx = 0
                 yy = 0
+            else:
+                xx = np.random.randint(0, W - ps)
+                yy = np.random.randint(0, H - ps)
+            
             input_patch = img_recon[yy:yy + ps, xx:xx + ps, :]
             gt_patch = img_clipped[yy:yy + ps, xx:xx + ps, :]
             amp_patch = amp[yy:yy + ps, xx:xx + ps]
@@ -159,7 +160,7 @@ with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode))
                 plt.figure(1)
                 plt.subplot(1,2,1)
                 plt.imshow(input_patch[:,:,0], cmap='gray')
-                plt.title("HEVC recon real, Qp:%d, psnr:%.1f"%(qp, recon_real_psnr))
+                plt.title("HEVC recon real, Qp:%d, psnr:%.4f dB"%(qp, recon_real_psnr))
                 plt.subplot(1,2,2)
                 plt.imshow(gt_patch[:,:,0], cmap='gray')
                 plt.title("GT")
@@ -173,8 +174,8 @@ with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode))
                 # plt.imshow(amp_patch/amp_max_val, cmap='gray')
                 # plt.title("GT amp")
                 plt.show()
-            np.save(os.path.join( output_file_path, "input/%d.npy"%(j+i*samples)), input_patch)
-            np.save(os.path.join( output_file_path, "gt/%d.npy"%(j+i*samples)), gt_patch)
-            np.save(os.path.join( output_file_path, "amp/%d.npy"%(j+i*samples)), amp_patch)
-            np.save(os.path.join( output_file_path, "phase/%d.npy"%(j+i*samples)), phase_patch)
+            np.save(os.path.join(home_dir, output_file_path, "input/%d.npy"%(j+i*samples)), input_patch)
+            np.save(os.path.join(home_dir, output_file_path, "gt/%d.npy"%(j+i*samples)), gt_patch)
+            np.save(os.path.join(home_dir, output_file_path, "amp/%d.npy"%(j+i*samples)), amp_patch)
+            np.save(os.path.join(home_dir, output_file_path, "phase/%d.npy"%(j+i*samples)), phase_patch)
 print("Done..")
