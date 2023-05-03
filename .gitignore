@@ -135,3 +135,9 @@ dmypy.json
 /AFRL_nonuniform_test
 /frames
 /runs
+/AFRL_uniform_test
+/Sandia_nonuniform_test
+/Sandia_nonuniform_train
+/Sandia_nonuniform_validation
+/frames_nonuniform
+/frames_uniform

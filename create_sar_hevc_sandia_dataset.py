@@ -12,19 +12,19 @@ from skimage.metrics import mean_squared_error, peak_signal_noise_ratio
 
 debug            = False
 uniform          = 0
-mode             = "validation"
+mode             = "train"
 nbit             = 12
-min_val          = -5000
-max_val          = 5000
+min_val          = -500
+max_val          = 500
 amp_max_val      = np.sqrt(min_val**2+max_val**2)
 ps               = 256
 qp               = 13
 home_dir         = os.getenv("HOME")
 if uniform == 1:
-    output_file_path = "PythonDir/dataset/SAR_dataset/AFRL_uniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
+    output_file_path = "PythonDir/dataset/SAR_dataset/unifrom/Sandia_uniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
     temp_dir         = "./frames_uniform"
 else:
-    output_file_path = "PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
+    output_file_path = "PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
     temp_dir         = "./frames_nonuniform"
 # make dir
 if os.path.exists(temp_dir) == False:
@@ -32,23 +32,23 @@ if os.path.exists(temp_dir) == False:
     
 if mode == 'train':
     if uniform == 1:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_uniform_train/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/Sandia_uniform_train/"
     else:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_train/"
-    samples    = 10000
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/Sandia_nonuniform_train/"
+    samples    = 1000
     
 elif mode == 'validation':
     if uniform == 1:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_uniform_validation/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/Sandia_uniform_validation/"
     else:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_validation/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/Sandia_nonuniform_validation/"
     samples    = 1000
 
 elif mode == 'test':
     if uniform == 1:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_uniform_test/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/Sandia_uniform_test/"
     else:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_test/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/Sandia_nonuniform_test/"
     samples    = 1
     ps         = 1024
 
@@ -61,9 +61,9 @@ if os.path.exists(os.path.join(home_dir, output_file_path)) == False:
     os.makedirs(os.path.join(home_dir, output_file_path))
 with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode)), "w") as file:
     if uniform == 1:
-        file.write("AFRL uniform quantization\n test patch: 2401:3424, 1201:2224, :\n")
+        file.write("Sandia uniform quantization\ntest patch: 256:256+1024,1100:1100+1024\n")
     else: 
-        file.write("AFRL non-uniform quantization mu = 2.5\n test patch: 2401:3424, 1201:2224, :\n ")
+        file.write("Sandia non-uniform quantization mu = 2.5\ntest patch: 256:256+1024,1100:1100+1024\n")
     for i in range(len(real_list)):
         print("\n\n------------ENCODING real-----------------------") 
         cmd_encode = ['ffmpeg -y',
