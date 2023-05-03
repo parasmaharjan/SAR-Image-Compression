@@ -1,9 +1,10 @@
 # Author: Paras Maharjan
 # Date: 2023-04-11
 # Description: Main file for training and testing SAR images
-
+#
 # Cmd MST Sandia nonuniform quantization qp 13
-# python inference_afrl_complex.py --dataset AFRL --model MST --train_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_train --validation_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_validation
+# python inference_sandia_complex.py --dataset Sandia --model MST --train_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_train --validation_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_validation
+
 
 import argparse
 import cv2
@@ -23,8 +24,8 @@ device      = torch.device('cuda')
 nbit        = 12
 qp          = args.train_dataset_path[args.train_dataset_path.find("qp")+2:args.train_dataset_path.find("qp")+4]
 print("***** qp: ", qp)
-min_val     = -5000
-max_val     = 5000
+min_val     = -500
+max_val     = 500
 amp_max_val = np.sqrt(2*max_val**2)
 
 def test(args):
@@ -66,12 +67,12 @@ def test(args):
 
     with torch.no_grad():
         #pdb.set_trace()
-        ori_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp%s_test/gt/0.npy'%qp)
+        ori_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/gt/0.npy'%qp)
         ori_quant = (2**nbit - 1) * (ori_sar - min_val)/(max_val - min_val)
         ori_quant = np.round(ori_quant).astype(np.uint16)
         print("gt sar", ori_quant.shape, ori_quant.min(), ori_quant.max())
 
-        rec_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp%s_test/input/0.npy'%qp)
+        rec_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/input/0.npy'%qp)
         rec_sar = rec_sar/4095.0
 	    #rec_ch1 = np.minimum(rec_ch1, 4095)
         #rec_ch1 = rec_ch1/4095
@@ -83,11 +84,11 @@ def test(args):
         # rec_ch2 = rec_ch2/4095
         # print("rec ch2", rec_ch2.shape, rec_ch2.min(), rec_ch2.max())
 
-        amp_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp%s_test/amp/0.npy'%qp)
+        amp_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/amp/0.npy'%qp)
         amp_img = amp_img/amp_max_val
         print("GT Amp", amp_img.shape, amp_img.min(), amp_img.max())
 
-        pha_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp%s_test/phase/0.npy'%qp)
+        pha_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/phase/0.npy'%qp)
         # pha_img = pha_img[:2048, :2048]
         # plt.imshow(amp_img, cmap="gray")
         # plt.show()

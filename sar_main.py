@@ -1,11 +1,15 @@
 # Author: Paras Maharjan
 # Date: 2023-04-11
 # Description: Main file for training and testing SAR images
+#
+# Uniform quantization
 # Cmd MSTpp: python sar_main.py --model MSTpp --multi_loss 0 
 # Cmd MST without amp loss for qp 13: python sar_main.py --model MST --multi_loss 0 --train_dataset_path PythonDir/dataset/SAR_dataset/Sandia_SAR_HEVC_ps256qp13_train --validation_dataset_path PythonDir/dataset/SAR_dataset/Sandia_SAR_HEVC_ps256qp13_validation
 # Cmd MST without amp loss for qp 21: python sar_main.py --model MST --multi_loss 0 --train_dataset_path PythonDir/dataset/SAR_dataset/Sandia_SAR_HEVC_ps256qp21_train --validation_dataset_path PythonDir/dataset/SAR_dataset/Sandia_SAR_HEVC_ps256qp21_validation
 # Cmd MST with amp loss: python sar_main.py --model MST --multi_loss 1
-
+# non uniform quantization
+# Cmd MST Sandia without amp loss for non uniform qp 13: python sar_main.py --model MST --dataset Sandia --multi_loss 0 --train_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_train --validation_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_validation
+# Cmd MST AFRL without amp loss for non uniform qp 13: python sar_main.py --model MST --dataset AFRL --multi_loss 0 --train_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_train --validation_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_validation
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +35,7 @@ home_path = os.getenv("HOME")
 # crf = args.train_dataset_path[args.train_dataset_path.find("crf")+3:args.train_dataset_path.find("crf")+5]
 qp = args.train_dataset_path[args.train_dataset_path.find("qp")+2:args.train_dataset_path.find("qp")+4]
 print("***** qp: ", qp)
-writer = SummaryWriter("./runs/%s_%s_ps256rb%d_qp%s_%s"%(args.model, args.dataset, args.n_resblocks, qp, args.which_sar))
+writer = SummaryWriter("./runs/%s_%s_nonuniform_ps256rb%d_qp%s_%s"%(args.model, args.dataset, args.n_resblocks, qp, args.which_sar))
 
 device = torch.device('cuda')
 nbit = 12
@@ -50,7 +54,7 @@ def train(args):
     if args.pre_train:
         print("***** Using pre-trained model")
         #model.load_state_dict(torch.load(os.path.join(args.model_path, "mst_model_sandia_ps128rb%d_qp%s_%s.pt"%(args.n_resblocks, qp, args.which_sar))))
-        model.load_state_dict(torch.load(os.path.join(args.model_path, "mst_model_AFRL_ps256rb8_qp13_complex_best.pt")))
+        model.load_state_dict(torch.load(os.path.join(args.model_path, "MST_Sandia_ps256rb8_qp13_complex.pt")))
     model.to(device)
     #print(model)
     if args.multi_loss == 1:

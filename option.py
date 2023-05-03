@@ -10,7 +10,7 @@ parser.add_argument("--mode", type=str, default="train",
                     help="train or test")
 parser.add_argument('--model', type=str, default="MST",
                     help='EDSR or MST or MSTpp')
-parser.add_argument('--dataset', type=str, default="AFRL",
+parser.add_argument('--dataset', type=str, default="Sandia",
                     help="Sandia or AFRL")
 parser.add_argument("--pre_train", type=bool, default=False, 
                     help="load pretrain model or not?")
@@ -50,11 +50,11 @@ parser.add_argument('--scale', type=str, default='1',
                     help='super resolution scale')
 
 # Path
-parser.add_argument('--model_path', type=str, default="PythonDir/SAR-HEVC-Deblocking/src/ckpt",
+parser.add_argument('--model_path', type=str, default="/home/pmc4p/PythonDir/SAR-HEVC-Deblocking-master/ckpt",
                     help='path of model')
-parser.add_argument('--train_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp21_train',
+parser.add_argument('--train_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_train',
                     help='dataset directory')
-parser.add_argument('--validation_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp21_train',
+parser.add_argument('--validation_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_train',
                     help='dataset directory')
 # parser.add_argument('--test_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/Sandia_SAR_HEVC_qp21_test',
 #                     help='dataset directory')
