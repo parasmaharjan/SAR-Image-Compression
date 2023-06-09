@@ -12,6 +12,8 @@ parser.add_argument('--model', type=str, default="MST",
                     help='EDSR or MST or MSTpp')
 parser.add_argument('--dataset', type=str, default="Sandia",
                     help="Sandia or AFRL")
+parser.add_argument('--polarization', type=str, default="HH",
+                    help="HH or HV or VH or VV")
 parser.add_argument("--pre_train", type=bool, default=False, 
                     help="load pretrain model or not?")
 parser.add_argument("--start_epoch", type=bool, default=0,
@@ -28,7 +30,7 @@ parser.add_argument('--act', type=str, default='relu',
                     help='activation function[relu, prelu, leakyrelu, gelu]')
 parser.add_argument('--deformable', type=bool, default=True,
                     help="Use deformable convolution in the convolution")
-parser.add_argument('--multi_loss', type=int, default=0,
+parser.add_argument('--multi_loss', type=int, default=1,
                     help="multi loss, 0: SAR L1 , 1: SAR L1 + AMP L1, 2: SAR_L1 + AMP L1 + PHASE L1")
 
 # MST
@@ -50,11 +52,11 @@ parser.add_argument('--scale', type=str, default='1',
                     help='super resolution scale')
 
 # Path
-parser.add_argument('--model_path', type=str, default="/home/pmc4p/PythonDir/SAR-HEVC-Deblocking-master/ckpt",
+parser.add_argument('--model_path', type=str, default="PythonDir/SAR-HEVC-Deblocking-master/ckpt",
                     help='path of model')
-parser.add_argument('--train_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_train',
+parser.add_argument('--train_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp13_train',
                     help='dataset directory')
-parser.add_argument('--validation_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp13_train',
+parser.add_argument('--validation_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp13_validation',
                     help='dataset directory')
 # parser.add_argument('--test_dataset_path', type=str, default='PythonDir/dataset/SAR_dataset/Sandia_SAR_HEVC_qp21_test',
 #                     help='dataset directory')
@@ -82,9 +84,11 @@ if not os.path.exists(args.model_path):
     else:
         exit()
 args.validation_dataset_path = os.path.join(home_path, args.validation_dataset_path)
+print(args.validation_dataset_path)
 if not os.path.exists(args.validation_dataset_path):
     print("No validation dataset found.")
 args.train_dataset_path = os.path.join(home_path, args.train_dataset_path)
+print(args.train_dataset_path)
 if not os.path.exists(args.train_dataset_path):
     print("No train dataset found.")
     exit()

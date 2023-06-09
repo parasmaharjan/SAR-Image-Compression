@@ -4,6 +4,10 @@
 #
 # Cmd MST Sandia nonuniform quantization qp 13
 # python inference_sandia_complex.py --dataset Sandia --model MST --train_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_train --validation_dataset_path PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_validation
+#
+# Cmd MST uniform quantization qp 13
+# python inference_sandia_complex.py --dataset Sandia --model MST --train_dataset_path PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp13_train --validation_dataset_path PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp13_validation
+
 
 
 import argparse
@@ -18,6 +22,7 @@ from mst_model.deformable_mst import EDSR
 #from mst_model.deformable_mstpp import MST_Plus_Plus
 from option import args
 from skimage.metrics import peak_signal_noise_ratio, mean_squared_error
+from pytorch_msssim import MS_SSIM
 
 home_path   = os.getenv("HOME")
 device      = torch.device('cuda')
@@ -49,7 +54,8 @@ def test(args):
         print("***** Using MST model")
         if args.which_sar == "complex":
             model = EDSR(args)
-            model.load_state_dict(torch.load(os.path.join(args.model_path, "%s_%s_ps256rb8_qp%s_complex_best.pt"%(args.model, args.dataset, qp))))
+            model.load_state_dict(torch.load(os.path.join(args.model_path, "%s_%s_amploss0.00005_uniform_ps256rb8_qp%s_complex_best.pt"%(args.model, args.dataset, qp))))
+            #model.load_state_dict(torch.load("/home/pmc4p/PythonDir/SAR-HEVC-Deblocking/src/ckpt/mst_deformable3_model_sandia_ps256rb8_qp21_complex.pt"))
             model.to(device)
             print("total number of parameters (complex): ", sum(p.numel() for p in model.parameters()))
             model.eval()
@@ -67,12 +73,12 @@ def test(args):
 
     with torch.no_grad():
         #pdb.set_trace()
-        ori_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/gt/0.npy'%qp)
+        ori_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp%s_test/gt/0.npy'%qp)
         ori_quant = (2**nbit - 1) * (ori_sar - min_val)/(max_val - min_val)
         ori_quant = np.round(ori_quant).astype(np.uint16)
         print("gt sar", ori_quant.shape, ori_quant.min(), ori_quant.max())
 
-        rec_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/input/0.npy'%qp)
+        rec_sar = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp%s_test/input/0.npy'%qp)
         rec_sar = rec_sar/4095.0
 	    #rec_ch1 = np.minimum(rec_ch1, 4095)
         #rec_ch1 = rec_ch1/4095
@@ -84,11 +90,11 @@ def test(args):
         # rec_ch2 = rec_ch2/4095
         # print("rec ch2", rec_ch2.shape, rec_ch2.min(), rec_ch2.max())
 
-        amp_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/amp/0.npy'%qp)
+        amp_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp%s_test/amp/0.npy'%qp)
         amp_img = amp_img/amp_max_val
         print("GT Amp", amp_img.shape, amp_img.min(), amp_img.max())
 
-        pha_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp%s_test/phase/0.npy'%qp)
+        pha_img = np.load('/home/pmc4p/PythonDir/dataset/SAR_dataset/uniform/Sandia/Sandia_uniform_SAR_HEVC_ps256qp%s_test/phase/0.npy'%qp)
         # pha_img = pha_img[:2048, :2048]
         # plt.imshow(amp_img, cmap="gray")
         # plt.show()
@@ -135,10 +141,17 @@ def test(args):
         psnr = peak_signal_noise_ratio(pred_amp_img, amp_img)
         print("Amplitude PSNR: ", psnr, "dB")
 
+        ms_ssim_amp_module = MS_SSIM(data_range=1.0, size_average=True, channel=1)
+        amp_msssim = ms_ssim_amp_module(torch.tensor(np.expand_dims(np.expand_dims(pred_amp_img, axis=0), axis=1)), torch.tensor(np.expand_dims(np.expand_dims(amp_img, axis=0), axis=0)))
+        print("Amplitude MS-SSIM: ", amp_msssim)
+
         pred_pha_img = np.arctan2(pred_sar_img[:,:, 1],pred_sar_img[:,:, 0])
         print("pred pha", pred_pha_img.shape, pred_pha_img.min(), pred_pha_img.max())
         pha_mse = mean_squared_error(pred_pha_img, pha_img)
         print("Phase MSE: ", pha_mse)
+        ms_ssim_pha_module = MS_SSIM(data_range=3.141592653589793, size_average=True, channel=1)
+        phase_msssim = ms_ssim_pha_module(torch.tensor(np.expand_dims(np.expand_dims(pred_pha_img, axis=0), axis=1)), torch.tensor(np.expand_dims(np.expand_dims(pha_img, axis=0), axis=0)))
+        print("Phase MS-SSIM: ", phase_msssim)
 
         # from scipy.fftpack import dct
         # dct_img = dct(dct(ori_sar_img[32:32+8,100:100+8,0], axis=0), axis=1)
@@ -154,7 +167,7 @@ def test(args):
             #plt.title("Original Amplitude")
             #plt.subplot(1,3,2)
             plt.imshow(pred_amp_img, cmap="gray")
-            plt.title("Proposed SAR amplitude reconstruction, PSNR: %.2f dB"%(psnr))
+            plt.title("Proposed SAR amplitude reconstruction, PSNR: %.4f dB"%(psnr))
             plt.axis("off")
             #plt.subplot(1,3,3)
             #plt.imshow(pred_amp_img, cmap="gray")
