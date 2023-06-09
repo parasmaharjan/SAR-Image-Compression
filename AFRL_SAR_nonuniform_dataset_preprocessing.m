@@ -16,10 +16,10 @@ clc
  % 1 = run + display results,
  % 2 = validate the hevc results with recon PSNR Non-unifrom (test amp psnr: 19.8670 dB)
  % 3 = validate the hevc results with recon PSNR unifrom     (test amp psnr: 19.5955 dB)
-debug      = 2;       
-mode       = "test";
-uniform    = 0;
-if uniform == 1 
+debug      = 1;       
+mode       = "train";
+uniform    = 1;
+if uniform == 1 & debug == 2
     debug = 3;
 end
 sar_min    = -5000.0;
@@ -28,7 +28,7 @@ n_bits     = 12;       % Define the number of bits used for quantization
 n_levels   = 2^n_bits; % Define the number of quantization levels
 mu         = 2.5;      % mu-law parameter
 if uniform == 1
-    output_dir = ['/home/paras/PythonDir/SAR-HEVC-Deblocking-master/AFRL_uniform_' char(mode) '/'];
+    output_dir = ['/home/paras/PythonDir/SAR-HEVC-Deblocking-master/AFRL_VH_uniform_' char(mode) '/'];
 else
     output_dir = ['/home/paras/PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_' char(mode) '/'];
 end
@@ -39,11 +39,12 @@ end
 %% Validate the output of HEVC and Network recon for non uniform
 if debug==2  
     addpath('/home/paras/PythonDir/npy-matlab-master/npy-matlab')
-    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp15_test/input/0.npy");
+    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp21_test2/input/0.npy");
     [H, W, C]       = size(sar_hevc_quants);
     sar_hevc_quants = sar_hevc_quants(:);
-    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp15_test/gt/0.npy");
-    sar_amp         = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp15_test/amp/0.npy");
+    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp21_test2/gt/0.npy");
+    sar_amp         = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp21_test2/amp/0.npy");
+    sar_phase       = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/AFRL_nonuniform_SAR_HEVC_ps256qp21_test2/phase/0.npy");
     
     sar_hevc_recon = (single(sar_hevc_quants) .* (sar_max - sar_min) / (n_levels - 1)) + sar_min; 
 
@@ -65,16 +66,18 @@ if debug==2
     amp_psnr = psnr(sar_amp/max(sar_amp(:)), sar_recon_amp/max(sar_recon_amp(:)))
     subplot(1,2,2);imagesc(sar_recon_amp); colormap("gray"); title("Quantized SAR amplitude image (Non-Unifrom Quantization)")
     
+    sar_recon_phase = atan2(sar_image_quants(:,:,2),sar_image_quants(:,:,1));
+    phase_mse = mse(sar_phase, sar_recon_phase)
     display("done")
 end
 
 %% Validate the output of HEVC and Network recon for uniform
 if debug==3 
     addpath('/home/paras/PythonDir/npy-matlab-master/npy-matlab')
-    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/AFRL_uniform_SAR_HEVC_ps256qp15_test/input/0.npy");
-    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/AFRL_uniform_SAR_HEVC_ps256qp15_test/gt/0.npy");
-    sar_amp         = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/AFRL_uniform_SAR_HEVC_ps256qp15_test/amp/0.npy");
-    
+    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/AFRL/AFRL_VH_uniform_SAR_HEVC_ps256qp21_test2/input/0.npy");
+    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/AFRL/AFRL_VH_uniform_SAR_HEVC_ps256qp21_test2/gt/0.npy");
+    sar_amp         = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/AFRL/AFRL_VH_uniform_SAR_HEVC_ps256qp21_test2/amp/0.npy");
+    sar_phase       = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/AFRL/AFRL_VH_uniform_SAR_HEVC_ps256qp21_test2/phase/0.npy");
     sar_image_quants = (single(sar_hevc_quants) .* (sar_max - sar_min) / (n_levels - 1)) + sar_min; 
         
     [h1,b1]=hist(double(sar_gt(:)),256);
@@ -91,15 +94,17 @@ if debug==3
     amp_psnr = psnr(sar_amp/max(sar_amp(:)), sar_recon_amp/max(sar_recon_amp(:)))
     subplot(1,2,2);imagesc(sar_recon_amp); colormap("gray"); title("Quantized SAR amplitude image (Unifrom Quantization)")
     
+    sar_recon_phase = atan2(sar_image_quants(:,:,2),sar_image_quants(:,:,1));
+    phase_mse = mse(sar_phase, sar_recon_phase)
     display("done")
 end
 
-if debug == 0
+if debug == 0 | debug == 1
     %% Read SAR image
     if mode=="train"
-        filename = "/home/paras/PythonDir/dataset/SAR_dataset/raw/AFRL_NGA_Products/sicd_example_1_PFA_RE32F_IM32F_HH.nitf";
+        filename = "/home/paras/PythonDir/dataset/SAR_dataset/raw/AFRL_NGA_Products/sicd_example_1_PFA_RE32F_IM32F_VH.nitf";
     else
-        filename = "/home/paras/PythonDir/dataset/SAR_dataset/raw/AFRL_NGA_Products/sicd_example_2_PFA_RE32F_IM32F_HH.nitf";
+        filename = "/home/paras/PythonDir/dataset/SAR_dataset/raw/AFRL_NGA_Products/sicd_example_2_PFA_RE32F_IM32F_VH.nitf";
     end
 
     [pathstr,name,ext] = fileparts(filename);
@@ -107,7 +112,10 @@ if debug == 0
 
     sar_image = nitfread(filename);
     if mode == "test"
-        sar_image = sar_image(2401:3424, 1201:2224, :);
+        sar_image = sar_image(2401:3424, 1201:2224, :);   % test 1
+    end
+    if mode == "test2"
+        sar_image = sar_image(1:1024, 1:1024, :);         % test 2
     end
     [H,W,C]   = size(sar_image);
     % Clipped SAR with in some fixed range
@@ -138,7 +146,14 @@ if debug == 0
         sar_compressed   = compand(sar_image,mu,V,'mu/compressor');
         quants           = uint16((n_levels - 1) .* (sar_compressed - sar_min)/(sar_max - sar_min));
         sar_image_quants = reshape(quants, [H, W, C]);
+        figure();
+        [h1,b1]=hist(double(sar_image(:)),256);
+        plot(b1, h1);
+        hold on
+        [h2,b2]=hist(double(sar_compressed(:)),256);
+        plot(b2, h2);
     end
+
     % save image
     imwrite(sar_image_quants(:,:,1), [output_dir char(name) '_quant_real.png']);
     imwrite(sar_image_quants(:,:,2), [output_dir char(name) '_quant_imaginary.png']);

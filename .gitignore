@@ -130,14 +130,18 @@ dmypy.json
 
 # Dataset and ckpt
 /ckpt
-/AFRL_nonuniform_train
-/AFRL_nonuniform_validation
-/AFRL_nonuniform_test
-/frames
 /runs
-/AFRL_uniform_test
-/Sandia_nonuniform_test
-/Sandia_nonuniform_train
-/Sandia_nonuniform_validation
-/frames_nonuniform
-/frames_uniform
+# /AFRL_nonuniform_train
+# /AFRL_nonuniform_validation
+# /AFRL_nonuniform_test
+# /AFRL_uniform_test
+# /Sandia_nonuniform_test
+# /Sandia_nonuniform_train
+# /Sandia_nonuniform_validation
+# /frames
+# /frames_nonuniform
+# /frames_uniform
+/AFRL*
+/Sandia*
+/frames*
+/Output

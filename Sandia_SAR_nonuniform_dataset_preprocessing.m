@@ -19,10 +19,10 @@ addpath("/home/paras/PythonDir/Sandia_gff_reader")
  % 1 = run + display results,
  % 2 = validate the hevc results with recon PSNR Non-unifrom (test amp psnr: 21.0340 dB)
  % 3 = validate the hevc results with recon PSNR unifrom     (test amp psnr: 20.4030 dB)
-debug      = 2;       
+debug      = 1;       
 mode       = "test";
-uniform    = 0;
-if uniform == 1 
+uniform    = 1;
+if uniform == 1 & debug == 2
     debug = 3;
 end
 sar_min    = -500.0;
@@ -42,11 +42,12 @@ end
 %% Validate the output of HEVC and Network recon for non uniform
 if debug==2  
     addpath('/home/paras/PythonDir/npy-matlab-master/npy-matlab')
-    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_test/input/0.npy");
+    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp21_test/input/0.npy");
     [H, W, C]       = size(sar_hevc_quants);
     sar_hevc_quants = sar_hevc_quants(:);
-    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_test/gt/0.npy");
-    sar_amp         = single(readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp13_test/amp/0.npy"));
+    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp21_test/gt/0.npy");
+    sar_amp         = single(readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp21_test/amp/0.npy"));
+    sar_phase       = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/nonuniform/Sandia_nonuniform_SAR_HEVC_ps256qp21_test/phase/0.npy");
     
     sar_hevc_recon = (single(sar_hevc_quants) .* (sar_max - sar_min) / (n_levels - 1)) + sar_min; 
 
@@ -69,16 +70,19 @@ if debug==2
     amp_psnr = psnr(sar_amp/max(sar_amp(:)), sar_recon_amp/max(sar_recon_amp(:)))
     subplot(1,2,2);imagesc(sar_recon_amp); colormap("gray"); title("Quantized SAR amplitude image (Non-Unifrom Quantization)")
     
+    sar_recon_phase = atan2(sar_image_quants(:,:,2),sar_image_quants(:,:,1));
+    phase_mse = mse(sar_phase, sar_recon_phase)
+    
     display("done")
 end
 
 %% Validate the output of HEVC and Network recon for uniform
 if debug==3 
     addpath('/home/paras/PythonDir/npy-matlab-master/npy-matlab')
-    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/Sandia_SAR_HEVC_ps256qp13_test/input/0.npy");
-    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/Sandia_SAR_HEVC_ps256qp13_test/gt/0.npy");
-    sar_amp         = single(readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/Sandia_SAR_HEVC_ps256qp13_test/amp/0.npy"));
-    
+    sar_hevc_quants = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/Sandia_SAR_HEVC_ps256qp21_test/input/0.npy");
+    sar_gt          = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/Sandia_SAR_HEVC_ps256qp21_test/gt/0.npy");
+    sar_amp         = single(readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/Sandia_SAR_HEVC_ps256qp21_test/amp/0.npy"));
+    sar_phase       = readNPY("/home/paras/PythonDir/dataset/SAR_dataset/uniform/Sandia_SAR_HEVC_ps256qp21_test/phase/0.npy");
     sar_image_quants = (single(sar_hevc_quants) .* (sar_max - sar_min) / (n_levels - 1)) + sar_min; 
     
     figure;
@@ -96,6 +100,9 @@ if debug==3
     sar_recon_amp = sqrt(sar_image_quants(:,:,1).^2 + sar_image_quants(:,:,2).^2);
     amp_psnr = psnr(sar_amp/max(sar_amp(:)), sar_recon_amp/max(sar_recon_amp(:)))
     subplot(1,2,2);imagesc(sar_recon_amp); colormap("gray"); title("Quantized SAR amplitude image (Unifrom Quantization)")
+    
+    sar_recon_phase = atan2(sar_image_quants(:,:,2),sar_image_quants(:,:,1));
+    phase_mse = mse(sar_phase, sar_recon_phase)
     
     display("done")
 end

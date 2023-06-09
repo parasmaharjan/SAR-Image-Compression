@@ -6,13 +6,15 @@ import os
 import sarpy.io.general.nitf as nitf
 import scipy.io as sio
 import time
+import torch
 
+from pytorch_msssim import MS_SSIM
 from pathlib import Path
 from skimage.metrics import mean_squared_error, peak_signal_noise_ratio
 
 debug            = False
-uniform          = 0
-mode             = "validation"
+uniform          = 1
+mode             = "test"
 nbit             = 12
 min_val          = -5000
 max_val          = 5000
@@ -21,10 +23,10 @@ ps               = 256
 qp               = 13
 home_dir         = os.getenv("HOME")
 if uniform == 1:
-    output_file_path = "PythonDir/dataset/SAR_dataset/AFRL_uniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
+    output_file_path = "PythonDir/dataset/SAR_dataset/uniform/AFRL/VH/AFRL_VH_uniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
     temp_dir         = "./frames_uniform"
 else:
-    output_file_path = "PythonDir/dataset/SAR_dataset/AFRL_nonuniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
+    output_file_path = "PythonDir/dataset/SAR_dataset/nonuniform/AFRL/AFRL_nonuniform_SAR_HEVC_ps256qp%d_%s/"%(qp, mode)
     temp_dir         = "./frames_nonuniform"
 # make dir
 if os.path.exists(temp_dir) == False:
@@ -32,23 +34,30 @@ if os.path.exists(temp_dir) == False:
     
 if mode == 'train':
     if uniform == 1:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_uniform_train/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_VH_uniform_train/"
     else:
         file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_train/"
     samples    = 10000
     
 elif mode == 'validation':
     if uniform == 1:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_uniform_validation/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_VH_uniform_validation/"
     else:
         file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_validation/"
     samples    = 1000
 
 elif mode == 'test':
     if uniform == 1:
-        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_uniform_test/"
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_VH_uniform_test/"
     else:
         file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_test/"
+    samples    = 1
+    ps         = 1024
+elif mode == 'test2':
+    if uniform == 1:
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_VH_uniform_test2/"
+    else:
+        file_path  = "PythonDir/SAR-HEVC-Deblocking-master/AFRL_nonuniform_test2/"
     samples    = 1
     ps         = 1024
 
@@ -61,7 +70,10 @@ if os.path.exists(os.path.join(home_dir, output_file_path)) == False:
     os.makedirs(os.path.join(home_dir, output_file_path))
 with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode)), "w") as file:
     if uniform == 1:
-        file.write("AFRL uniform quantization\n test patch: 2401:3424, 1201:2224, :\n")
+        if mode == 'test':
+            file.write("AFRL uniform quantization\n test patch: 2401:3424, 1201:2224, :\n")
+        elif mode == 'test2':
+            file.write("AFRL uniform quantization\n test patch: 1:1024, 1:1024, :\n")
     else: 
         file.write("AFRL non-uniform quantization mu = 2.5\n test patch: 2401:3424, 1201:2224, :\n ")
     for i in range(len(real_list)):
@@ -126,29 +138,34 @@ with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode))
 
         #img_recon = np.stack((rec_ch1, rec_ch2), axis=2)
         img_recon = np.stack((np.minimum(rec_ch1, (2**nbit -1)), np.minimum(rec_ch2, (2**nbit -1))), axis=2)
-        #img_recon_dequant = np.round( ((max_val - min_val)*img_recon.astype(np.float32)/(2**nbit - 1)) + min_val )
+        img_recon_dequant = np.round( ((max_val - min_val)*img_recon.astype(np.float32)/(2**nbit - 1)) + min_val )
 
         recon_real_psnr = peak_signal_noise_ratio(img_recon[:,:,0]/(2**nbit -1), real_quant/(2**nbit -1))
         recon_imaginary_psnr = peak_signal_noise_ratio(img_recon[:,:,1]/(2**nbit -1), imaginary_quant/(2**nbit -1))
         print("SAR psnr", recon_real_psnr, recon_imaginary_psnr)
 
         # Recon amp
-        # recon_amp = np.sqrt(img_recon_dequant[:,:,0]**2 + img_recon_dequant[:,:,1]**2)
-        # recon_psnr = peak_signal_noise_ratio(recon_amp/amp_max_val, amp/amp_max_val)
-        # print("AMP psnr: ", recon_psnr)
+        recon_amp = np.sqrt(img_recon_dequant[:,:,0]**2 + img_recon_dequant[:,:,1]**2)
+        recon_psnr = peak_signal_noise_ratio(recon_amp/amp_max_val, amp/amp_max_val)
+        print("AMP psnr: ", recon_psnr)
         
-
+        # HEVC AMP MS-SSIM
+        ms_ssim_amp_module = MS_SSIM(data_range=1.0, size_average=True, channel=1)
+        amp_msssim = ms_ssim_amp_module(torch.tensor(np.expand_dims(np.expand_dims(recon_amp/amp_max_val, axis=0), axis=1)), torch.tensor(np.expand_dims(np.expand_dims(amp/amp_max_val, axis=0), axis=0)))
+        print("HEVC Amplitude MS-SSIM: ", amp_msssim)
+        
         # plt.subplot(1,2,1);plt.imshow(amp, cmap="gray");plt.title("Original amplitude image (Complex SAR bpp: %.4f)"%(bpp));plt.axis('off');plt.subplot(1,2,2);plt.imshow(recon_amp, cmap='gray');plt.title("HEVC decoded amplitude SAR (QP: %d, PSNR: %.4f dB)"%(qp, recon_psnr));plt.axis('off');plt.show()
-        # recon_pha = np.arctan2(img_recon_dequant[:,:,1], img_recon_dequant[:,:,0])
-        # recon_pha_mse = mean_squared_error(recon_pha, pha)
-        # print("Pha mse: ", recon_pha_mse)
+        recon_pha = np.arctan2(img_recon_dequant[:,:,1], img_recon_dequant[:,:,0])
+        print(recon_pha.min(), recon_pha.max())
+        recon_pha_mse = mean_squared_error(recon_pha, pha)
+        print("Phase mse: ", recon_pha_mse)
 
         # make dir
         file.write(gt_sar_list[i])
         file.write(f'bitstream-size:{f_size_real + f_size_imaginary} bytes ({bpp:.4f}) bpp\n')
         file.write("SAR psnr: %f %f\n"%(recon_real_psnr, recon_imaginary_psnr))
-        #file.write("AMP psnr: %f\n"%recon_psnr)
-        #file.write("Pha mse: %f\n\n"%(recon_pha_mse))
+        file.write("AMP psnr: %f\n"%recon_psnr)
+        file.write("Pha mse: %f\n\n"%(recon_pha_mse))
 
         # if mode == "test":
         #     os.popen('cp ./frames/* %s'%output_file_path)
@@ -162,7 +179,7 @@ with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode))
         # create intput and GT pair
         for j in range(samples):
             #print(i, j)
-            if mode == "test":
+            if mode == "test" or mode == "test2":
                 xx = 0
                 yy = 0
             else:
@@ -173,7 +190,7 @@ with open(os.path.join(home_dir, output_file_path, "log_qp%d_%s.txt"%(qp, mode))
             gt_patch = img_clipped[yy:yy + ps, xx:xx + ps, :]
             amp_patch = amp[yy:yy + ps, xx:xx + ps]
             phase_patch = pha[yy:yy + ps, xx:xx + ps]
-            if 0:
+            if debug:
                 plt.figure(1)
                 plt.subplot(1,2,1)
                 plt.imshow(input_patch[:,:,0], cmap='gray')
